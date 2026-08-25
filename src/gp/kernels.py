@@ -17,6 +17,12 @@ class Kernel(ABC):
         if X1.shape[1] != X2.shape[1]:
             raise ValueError("X1 and X2 must have the same number of features")
 
+    def _squared_distance(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
+        X1_expanded = np.expand_dims(X1, axis=1)
+        X2_expanded = np.expand_dims(X2, axis=0)
+        squared_differences = (X1_expanded - X2_expanded) ** 2
+        return np.sum(squared_differences, axis=-1)
+
 
 class RBF(Kernel):
     def __init__(self, length_scale: float = 1.0, variance: float = 1.0) -> None:
@@ -34,12 +40,6 @@ class RBF(Kernel):
         squared_distances = self._squared_distance(X1, X2)
         return self.variance * np.exp(-squared_distances / (2 * self.length_scale**2))
 
-    def _squared_distance(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
-        X1_expanded = np.expand_dims(X1, axis=1)
-        X2_expanded = np.expand_dims(X2, axis=0)
-        squared_differences = (X1_expanded - X2_expanded) ** 2
-        return np.sum(squared_differences, axis=-1)
-
 
 class Linear(Kernel):
     def __init__(self, variance: float = 1.0) -> None:
@@ -51,3 +51,23 @@ class Linear(Kernel):
     def __call__(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
         self._validate_inputs(X1, X2)
         return self.variance * (X1 @ X2.T)
+
+
+class Matern32(Kernel):
+    def __init__(self, length_scale: float = 1.0, variance: float = 1.0) -> None:
+        if length_scale <= 0:
+            raise ValueError("length_scale must be greater than 0")
+
+        if variance < 0:
+            raise ValueError("variance must be non-negative")
+
+        self.length_scale = length_scale
+        self.variance = variance
+
+    def __call__(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
+        self._validate_inputs(X1, X2)
+        fraction = np.sqrt(3) * self._radius(X1, X2) / self.length_scale
+        return self.variance * (1 + fraction) * np.exp(-fraction)
+
+    def _radius(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
+        return np.sqrt(self._squared_distance(X1, X2))

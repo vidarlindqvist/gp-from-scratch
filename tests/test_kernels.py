@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from gp.kernels import RBF, Kernel, Linear
+from gp.kernels import Kernel, RBF, Linear, Matern32
 
 # RBF tests
 
@@ -289,3 +289,106 @@ def test_linear_rejects_incompatible_features():
 
     with pytest.raises(ValueError):
         kernel(X1, X2)
+
+# Matern32 kernel tests
+
+def test_matern32_output_shape():
+    X1 = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    )
+
+    X2 = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 1.0],
+            [2.0, 2.0],
+        ]
+    )
+
+    kernel = Matern32()
+    K = kernel(X1, X2)
+
+    assert K.shape == (3, 5)
+
+
+def test_matern32_diagonal_equals_variance():
+    X = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    )
+
+    variance = 2.5
+    kernel = Matern32(variance=variance)
+
+    K = kernel(X, X)
+
+    assert np.allclose(np.diag(K), variance)
+
+
+def test_matern32_is_symmetric():
+    X = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    )
+
+    kernel = Matern32()
+    K = kernel(X, X)
+
+    assert np.allclose(K, K.T)
+
+
+def test_matern32_known_value():
+    X1 = np.array([[0.0]])
+    X2 = np.array([[1.0]])
+
+    kernel = Matern32()
+
+    K = kernel(X1, X2)
+
+    expected = (1 + np.sqrt(3)) * np.exp(-np.sqrt(3))
+
+    assert np.isclose(K[0, 0], expected)
+
+
+def test_matern32_variance_scales_kernel():
+    X = np.array(
+        [
+            [0.0],
+            [1.0],
+        ]
+    )
+
+    kernel = Matern32(variance=3.0)
+    K = kernel(X, X)
+
+    unit_kernel = Matern32(variance=1.0)
+    expected = 3.0 * unit_kernel(X, X)
+
+    assert np.allclose(K, expected)
+
+
+def test_matern32_rejects_zero_length_scale():
+    with pytest.raises(ValueError):
+        Matern32(length_scale=0)
+
+
+def test_matern32_rejects_negative_length_scale():
+    with pytest.raises(ValueError):
+        Matern32(length_scale=-1)
+
+
+def test_matern32_rejects_negative_variance():
+    with pytest.raises(ValueError):
+        Matern32(variance=-1)
