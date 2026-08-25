@@ -37,3 +37,23 @@ class RBF(Kernel):
         X2_expanded = np.expand_dims(X2, axis=0)
         squared_differences = (X1_expanded - X2_expanded) ** 2
         return np.sum(squared_differences, axis=-1)
+
+
+class Linear(Kernel):
+    def __init__(self, variance: float = 1.0) -> None:
+        if variance < 0:
+            raise ValueError("variance must be non-negative")
+
+        self.variance = variance
+
+    def __call__(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
+        if X1.ndim != 2:
+            raise ValueError("X1 must be a 2D array")
+
+        if X2.ndim != 2:
+            raise ValueError("X2 must be a 2D array")
+
+        if X1.shape[1] != X2.shape[1]:
+            raise ValueError("X1 and X2 must have the same number of features")
+
+        return self.variance * (X1 @ X2.T)

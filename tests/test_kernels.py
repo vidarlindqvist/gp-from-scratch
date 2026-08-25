@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from gp.kernels import RBF, Kernel
+from gp.kernels import RBF, Kernel, Linear
 
+# RBF tests
 
 def test_rbf_output_shape():
     X1 = np.array(
@@ -141,6 +142,150 @@ def test_rbf_rejects_incompatible_features():
     with pytest.raises(ValueError):
         kernel(X1, X2)
 
+# Kernel ABC tests
+
 def test_kernel_is_abstract():
     with pytest.raises(TypeError):
         Kernel()
+
+# Linear kernel tests
+
+def test_linear_output_shape():
+    X1 = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+        ]
+    )
+
+    X2 = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    )
+
+    kernel = Linear()
+    K = kernel(X1, X2)
+
+    assert K.shape == (3, 2)
+
+
+def test_linear_known_values():
+    X1 = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+        ]
+    )
+
+    X2 = np.array(
+        [
+            [5.0, 6.0],
+            [7.0, 8.0],
+        ]
+    )
+
+    kernel = Linear()
+    K = kernel(X1, X2)
+
+    expected = np.array(
+        [
+            [17.0, 23.0],
+            [39.0, 53.0],
+        ]
+    )
+
+    assert np.allclose(K, expected)
+
+
+def test_linear_variance_scales_kernel():
+    X = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+        ]
+    )
+
+    variance = 2.5
+    kernel = Linear(variance=variance)
+
+    K = kernel(X, X)
+
+    expected = variance * (X @ X.T)
+
+    assert np.allclose(K, expected)
+
+
+def test_linear_is_symmetric():
+    X = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+        ]
+    )
+
+    kernel = Linear()
+    K = kernel(X, X)
+
+    assert np.allclose(K, K.T)
+
+
+def test_linear_rejects_negative_variance():
+    with pytest.raises(ValueError):
+        Linear(variance=-1)
+
+
+def test_linear_rejects_1d_x1():
+    X1 = np.array([1.0, 2.0])
+
+    X2 = np.array(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    )
+
+    kernel = Linear()
+
+    with pytest.raises(ValueError):
+        kernel(X1, X2)
+
+
+def test_linear_rejects_1d_x2():
+    X1 = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+        ]
+    )
+
+    X2 = np.array([1.0, 2.0])
+
+    kernel = Linear()
+
+    with pytest.raises(ValueError):
+        kernel(X1, X2)
+
+
+def test_linear_rejects_incompatible_features():
+    X1 = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+        ]
+    )
+
+    X2 = np.array(
+        [
+            [1.0, 2.0, 3.0],
+            [4.0, 5.0, 6.0],
+        ]
+    )
+
+    kernel = Linear()
+
+    with pytest.raises(ValueError):
+        kernel(X1, X2)
