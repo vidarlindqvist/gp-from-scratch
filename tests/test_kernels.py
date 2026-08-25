@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from gp.kernels import RBF
+from gp.kernels import RBF, Kernel
 
 
 def test_rbf_output_shape():
@@ -140,3 +140,7 @@ def test_rbf_rejects_incompatible_features():
 
     with pytest.raises(ValueError):
         kernel(X1, X2)
+
+def test_kernel_is_abstract():
+    with pytest.raises(TypeError):
+        Kernel()

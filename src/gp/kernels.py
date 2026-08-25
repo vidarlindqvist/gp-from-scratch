@@ -1,9 +1,11 @@
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 
-class Kernel:
-    def __call__(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
+class Kernel(ABC):
+    @abstractmethod
+    def __call__(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray: ...
 
 
 class RBF(Kernel):
