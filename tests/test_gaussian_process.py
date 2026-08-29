@@ -92,4 +92,95 @@ def test_validate_training_data_rejects_mismatched_observations():
     with pytest.raises(ValueError):
         gp._validate_training_data(X, y)
 
+# Cholesky tests
 
+def test_fit_cholesky_factorization():
+    X = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+
+    y = np.array([1.0, 2.0, 3.0])
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X, y)
+
+    assert np.allclose(gp.L @ gp.L.T, gp.K_y)
+
+def test_fit_stores_training_data():
+    X = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+
+    y = np.array([1.0, 2.0, 3.0])
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X, y)
+
+    assert np.array_equal(gp.X_train, X)
+    assert np.array_equal(gp.y_train, y)
+
+
+def test_fit_constructs_training_covariance():
+    X = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+
+    y = np.array([1.0, 2.0, 3.0])
+
+    kernel = RBF()
+    gp = GaussianProcess(kernel, noise=0.1)
+    gp.fit(X, y)
+
+    expected = kernel(X, X)
+
+    assert np.allclose(gp.K_train, expected)
+
+
+def test_fit_adds_observation_noise():
+    X = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+
+    y = np.array([1.0, 2.0, 3.0])
+
+    noise = 0.1
+    kernel = RBF()
+    gp = GaussianProcess(kernel, noise=noise)
+    gp.fit(X, y)
+
+    expected = kernel(X, X) + noise * np.eye(X.shape[0])
+
+    assert np.allclose(gp.K_y, expected)
+
+
+def test_fit_computes_alpha():
+    X = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+
+    y = np.array([1.0, 2.0, 3.0])
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X, y)
+
+    assert np.allclose(gp.K_y @ gp.alpha, gp.y_train)

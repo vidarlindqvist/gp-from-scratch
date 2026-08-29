@@ -11,15 +11,15 @@ class GaussianProcess:
         self.kernel = kernel
         self.noise = noise
 
-    def fit(self, X, y):
-        # validate training data
-        # construct K(X, X)
-        # add observation noise
-        # factorize the covariance matrix
-        # solve for the quantities needed during predicti, noise):
-        # store kernel and noise
-        # validate parameters
-        ...
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        self._validate_training_data(X, y)
+        self.X_train = X
+        self.y_train = y
+        self.K_train = self._compute_covariance_matrix(self.X_train, self.X_train)
+        self.K_y = self.K_train + self.noise * np.eye(self.K_train.shape[0])
+        self.L = np.linalg.cholesky(self.K_y)
+        v = _forward_substitution(self.L, self.y_train)
+        self.alpha = _backward_substitution(self.L.T, v)
 
     def predict(self, X):
         # validate that the GP has been fitted
@@ -41,3 +41,23 @@ class GaussianProcess:
 
     def _compute_covariance_matrix(self, X1: np.ndarray, X2: np.ndarray) -> np.ndarray:
         return self.kernel(X1, X2)
+
+
+def _forward_substitution(L: np.ndarray, b: np.ndarray) -> np.ndarray:
+    n = L.shape[0]
+    x = np.zeros_like(b)
+
+    for i in range(n):
+        x[i] = (b[i] - L[i, :i] @ x[:i]) / L[i, i]
+
+    return x
+
+
+def _backward_substitution(U: np.ndarray, b: np.ndarray) -> np.ndarray:
+    n = U.shape[0]
+    x = np.zeros_like(b)
+
+    for i in range(n - 1, -1, -1):
+        x[i] = (b[i] - U[i, i + 1 :] @ x[i + 1 :]) / U[i, i]
+
+    return x
