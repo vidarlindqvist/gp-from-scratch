@@ -25,7 +25,9 @@ def test_gaussian_process_rejects_negative_noise():
     with pytest.raises(ValueError):
         GaussianProcess(RBF(), noise=-1.0)
 
+
 # Covariance matrix tests
+
 
 def test_validate_training_data_accepts_valid_data():
     gp = GaussianProcess(RBF(), noise=0.1)
@@ -92,7 +94,9 @@ def test_validate_training_data_rejects_mismatched_observations():
     with pytest.raises(ValueError):
         gp._validate_training_data(X, y)
 
+
 # Cholesky tests
+
 
 def test_fit_cholesky_factorization():
     X = np.array(
@@ -109,6 +113,7 @@ def test_fit_cholesky_factorization():
     gp.fit(X, y)
 
     assert np.allclose(gp.L @ gp.L.T, gp.K_y)
+
 
 def test_fit_stores_training_data():
     X = np.array(
@@ -184,3 +189,158 @@ def test_fit_computes_alpha():
     gp.fit(X, y)
 
     assert np.allclose(gp.K_y @ gp.alpha, gp.y_train)
+
+
+# Predict tests
+
+
+def test_predict_rejects_unfitted_model():
+    gp = GaussianProcess(RBF(), noise=0.1)
+
+    X = np.array([[0.0]])
+
+    with pytest.raises(ValueError, match="model must be fitted"):
+        gp.predict(X)
+
+
+def test_predict_rejects_non_2d_X():
+    gp = GaussianProcess(RBF(), noise=0.1)
+
+    X_train = np.array([[0.0], [1.0], [2.0]])
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    gp.fit(X_train, y_train)
+
+    X = np.array([0.0, 1.0, 2.0])
+
+    with pytest.raises(ValueError, match="X must be a 2D array"):
+        gp.predict(X)
+
+
+def test_predict_rejects_wrong_number_of_features():
+    gp = GaussianProcess(RBF(), noise=0.1)
+
+    X_train = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    gp.fit(X_train, y_train)
+
+    X = np.array(
+        [
+            [0.0],
+            [1.0],
+        ]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="X and training data must have the same number of features",
+    ):
+        gp.predict(X)
+
+
+def test_predict_returns_correct_shape():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    predictions = gp.predict(X_predict)
+
+    assert predictions.shape == (2,)
+
+
+def test_predict_returns_expected_mean():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    predictions = gp.predict(X_predict)
+
+    K_star = gp.kernel(X_predict, X_train)
+    expected = K_star @ gp.alpha
+
+    assert np.allclose(predictions, expected)
+
+
+def test_predict_accepts_single_prediction_point():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array([[1.0]])
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    predictions = gp.predict(X_predict)
+
+    assert predictions.shape == (1,)
+
+
+def test_predict_accepts_multiple_prediction_points():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.0],
+            [0.5],
+            [1.0],
+            [1.5],
+            [2.0],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    predictions = gp.predict(X_predict)
+
+    assert predictions.shape == (5,)

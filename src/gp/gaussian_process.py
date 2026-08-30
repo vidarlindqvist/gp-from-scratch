@@ -10,6 +10,7 @@ class GaussianProcess:
 
         self.kernel = kernel
         self.noise = noise
+        self.is_fitted = False
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         self._validate_training_data(X, y)
@@ -20,14 +21,22 @@ class GaussianProcess:
         self.L = np.linalg.cholesky(self.K_y)
         v = _forward_substitution(self.L, self.y_train)
         self.alpha = _backward_substitution(self.L.T, v)
+        self.is_fitted = True
 
-    def predict(self, X):
-        # validate that the GP has been fitted
-        # validate input dimensions
-        # construct K(X, X_train)
-        # calculate predictive variance
-        # return predictions
-        ...
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        if not self.is_fitted:
+            raise ValueError("model must be fitted")
+
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D array")
+
+        if X.shape[1] != self.X_train.shape[1]:
+            raise ValueError(
+                "X and training data must have the same number of features"
+            )
+
+        K_star = self._compute_covariance_matrix(X, self.X_train)
+        return K_star @ self.alpha
 
     def _validate_training_data(self, X: np.ndarray, y: np.ndarray) -> None:
         if X.ndim != 2:
