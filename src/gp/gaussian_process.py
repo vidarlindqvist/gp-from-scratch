@@ -23,7 +23,7 @@ class GaussianProcess:
         self.alpha = _backward_substitution(self.L.T, v)
         self.is_fitted = True
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         if not self.is_fitted:
             raise ValueError("model must be fitted")
 
@@ -36,7 +36,9 @@ class GaussianProcess:
             )
 
         K_star = self._compute_covariance_matrix(X, self.X_train)
-        return K_star @ self.alpha
+        K_star_star = self._compute_covariance_matrix(X, X)
+        V = _forward_substitution(self.L, K_star.T)
+        return K_star @ self.alpha, K_star_star - V.T @ V
 
     def _validate_training_data(self, X: np.ndarray, y: np.ndarray) -> None:
         if X.ndim != 2:

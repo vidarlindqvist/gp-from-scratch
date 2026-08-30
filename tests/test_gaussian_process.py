@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from gp.gaussian_process import GaussianProcess
+from gp.gaussian_process import GaussianProcess, _forward_substitution
 from gp.kernels import RBF
 
 
@@ -245,59 +245,6 @@ def test_predict_rejects_wrong_number_of_features():
         gp.predict(X)
 
 
-def test_predict_returns_correct_shape():
-    X_train = np.array(
-        [
-            [0.0],
-            [1.0],
-            [2.0],
-        ]
-    )
-    y_train = np.array([1.0, 2.0, 3.0])
-
-    X_predict = np.array(
-        [
-            [0.5],
-            [1.5],
-        ]
-    )
-
-    gp = GaussianProcess(RBF(), noise=0.1)
-    gp.fit(X_train, y_train)
-
-    predictions = gp.predict(X_predict)
-
-    assert predictions.shape == (2,)
-
-
-def test_predict_returns_expected_mean():
-    X_train = np.array(
-        [
-            [0.0],
-            [1.0],
-            [2.0],
-        ]
-    )
-    y_train = np.array([1.0, 2.0, 3.0])
-
-    X_predict = np.array(
-        [
-            [0.5],
-            [1.5],
-        ]
-    )
-
-    gp = GaussianProcess(RBF(), noise=0.1)
-    gp.fit(X_train, y_train)
-
-    predictions = gp.predict(X_predict)
-
-    K_star = gp.kernel(X_predict, X_train)
-    expected = K_star @ gp.alpha
-
-    assert np.allclose(predictions, expected)
-
-
 def test_predict_accepts_single_prediction_point():
     X_train = np.array(
         [
@@ -313,9 +260,9 @@ def test_predict_accepts_single_prediction_point():
     gp = GaussianProcess(RBF(), noise=0.1)
     gp.fit(X_train, y_train)
 
-    predictions = gp.predict(X_predict)
+    mean, _ = gp.predict(X_predict)
 
-    assert predictions.shape == (1,)
+    assert mean.shape == (1,)
 
 
 def test_predict_accepts_multiple_prediction_points():
@@ -341,6 +288,169 @@ def test_predict_accepts_multiple_prediction_points():
     gp = GaussianProcess(RBF(), noise=0.1)
     gp.fit(X_train, y_train)
 
-    predictions = gp.predict(X_predict)
+    mean, _ = gp.predict(X_predict)
 
-    assert predictions.shape == (5,)
+    assert mean.shape == (5,)
+
+
+def test_predict_mean_has_correct_shape():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    mean, _ = gp.predict(X_predict)
+
+    assert mean.shape == (2,)
+
+
+def test_predict_covariance_has_correct_shape():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    _, covariance = gp.predict(X_predict)
+
+    assert covariance.shape == (2, 2)
+
+
+def test_predict_mean_matches_gp_equation():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    mean, _ = gp.predict(X_predict)
+
+    K_star = gp.kernel(X_predict, X_train)
+    expected_mean = K_star @ gp.alpha
+
+    assert np.allclose(mean, expected_mean)
+
+
+def test_predict_covariance_matches_gp_equation():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    _, covariance = gp.predict(X_predict)
+
+    K_star = gp.kernel(X_predict, X_train)
+    K_star_star = gp.kernel(X_predict, X_predict)
+    V = _forward_substitution(gp.L, K_star.T)
+
+    expected_covariance = K_star_star - V.T @ V
+
+    assert np.allclose(covariance, expected_covariance)
+
+
+def test_predict_covariance_is_symmetric():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.0],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    _, covariance = gp.predict(X_predict)
+
+    assert np.allclose(covariance, covariance.T)
+
+
+def test_predict_covariance_has_nonnegative_diagonal():
+    X_train = np.array(
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+        ]
+    )
+    y_train = np.array([1.0, 2.0, 3.0])
+
+    X_predict = np.array(
+        [
+            [0.5],
+            [1.0],
+            [1.5],
+        ]
+    )
+
+    gp = GaussianProcess(RBF(), noise=0.1)
+    gp.fit(X_train, y_train)
+
+    _, covariance = gp.predict(X_predict)
+
+    variances = np.diag(covariance)
+
+    assert np.all(variances >= 0)
