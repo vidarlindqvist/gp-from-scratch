@@ -1,15 +1,16 @@
 import numpy as np
 
 from gp.kernels import Kernel
+from gp.likelihood import log_marginal_likelihood
 
 
 class GaussianProcess:
-    def __init__(self, kernel: Kernel, noise: float) -> None:
-        if noise < 0:
-            raise ValueError("noise must be non-negative")
+    def __init__(self, kernel: Kernel, noise_variance: float) -> None:
+        if noise_variance < 0:
+            raise ValueError("noise_variance must be non-negative")
 
         self.kernel = kernel
-        self.noise = noise
+        self.noise = noise_variance
         self.is_fitted = False
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
@@ -39,6 +40,12 @@ class GaussianProcess:
         K_star_star = self._compute_covariance_matrix(X, X)
         V = _forward_substitution(self.L, K_star.T)
         return K_star @ self.alpha, K_star_star - V.T @ V
+
+    def log_marginal_likelihood(self) -> float:
+        if not self.is_fitted:
+            raise ValueError("model must be fitted")
+
+        return log_marginal_likelihood(self.y_train, self.alpha, self.L)
 
     def _validate_training_data(self, X: np.ndarray, y: np.ndarray) -> None:
         if X.ndim != 2:

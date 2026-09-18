@@ -18,7 +18,7 @@ y_train = np.sin(X_train[:, 0])
 
 gp = GaussianProcess(
     kernel=RBF(),
-    noise=0.1,
+    noise_variance=0.1,
 )
 
 gp.fit(X_train, y_train)

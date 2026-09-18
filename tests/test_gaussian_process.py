@@ -16,21 +16,21 @@ def test_gaussian_process_stores_kernel_and_noise():
 
 
 def test_gaussian_process_accepts_zero_noise():
-    gp = GaussianProcess(RBF(), noise=0.0)
+    gp = GaussianProcess(RBF(), noise_variance=0.0)
 
     assert gp.noise == 0.0
 
 
 def test_gaussian_process_rejects_negative_noise():
     with pytest.raises(ValueError):
-        GaussianProcess(RBF(), noise=-1.0)
+        GaussianProcess(RBF(), noise_variance=-1.0)
 
 
 # Covariance matrix tests
 
 
 def test_validate_training_data_accepts_valid_data():
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
 
     X = np.array(
         [
@@ -46,7 +46,7 @@ def test_validate_training_data_accepts_valid_data():
 
 
 def test_validate_training_data_rejects_non_2d_X():
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
 
     X = np.array([0.0, 1.0, 2.0])
     y = np.array([1.0, 2.0, 3.0])
@@ -56,7 +56,7 @@ def test_validate_training_data_rejects_non_2d_X():
 
 
 def test_validate_training_data_rejects_non_1d_y():
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
 
     X = np.array(
         [
@@ -79,7 +79,7 @@ def test_validate_training_data_rejects_non_1d_y():
 
 
 def test_validate_training_data_rejects_mismatched_observations():
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
 
     X = np.array(
         [
@@ -109,7 +109,7 @@ def test_fit_cholesky_factorization():
 
     y = np.array([1.0, 2.0, 3.0])
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X, y)
 
     assert np.allclose(gp.L @ gp.L.T, gp.K_y)
@@ -126,7 +126,7 @@ def test_fit_stores_training_data():
 
     y = np.array([1.0, 2.0, 3.0])
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X, y)
 
     assert np.array_equal(gp.X_train, X)
@@ -145,7 +145,7 @@ def test_fit_constructs_training_covariance():
     y = np.array([1.0, 2.0, 3.0])
 
     kernel = RBF()
-    gp = GaussianProcess(kernel, noise=0.1)
+    gp = GaussianProcess(kernel, noise_variance=0.1)
     gp.fit(X, y)
 
     expected = kernel(X, X)
@@ -166,7 +166,7 @@ def test_fit_adds_observation_noise():
 
     noise = 0.1
     kernel = RBF()
-    gp = GaussianProcess(kernel, noise=noise)
+    gp = GaussianProcess(kernel, noise_variance=noise)
     gp.fit(X, y)
 
     expected = kernel(X, X) + noise * np.eye(X.shape[0])
@@ -185,7 +185,7 @@ def test_fit_computes_alpha():
 
     y = np.array([1.0, 2.0, 3.0])
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X, y)
 
     assert np.allclose(gp.K_y @ gp.alpha, gp.y_train)
@@ -195,7 +195,7 @@ def test_fit_computes_alpha():
 
 
 def test_predict_rejects_unfitted_model():
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
 
     X = np.array([[0.0]])
 
@@ -204,7 +204,7 @@ def test_predict_rejects_unfitted_model():
 
 
 def test_predict_rejects_non_2d_X():
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
 
     X_train = np.array([[0.0], [1.0], [2.0]])
     y_train = np.array([1.0, 2.0, 3.0])
@@ -218,7 +218,7 @@ def test_predict_rejects_non_2d_X():
 
 
 def test_predict_rejects_wrong_number_of_features():
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
 
     X_train = np.array(
         [
@@ -257,7 +257,7 @@ def test_predict_accepts_single_prediction_point():
 
     X_predict = np.array([[1.0]])
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     mean, _ = gp.predict(X_predict)
@@ -285,7 +285,7 @@ def test_predict_accepts_multiple_prediction_points():
         ]
     )
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     mean, _ = gp.predict(X_predict)
@@ -310,7 +310,7 @@ def test_predict_mean_has_correct_shape():
         ]
     )
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     mean, _ = gp.predict(X_predict)
@@ -335,7 +335,7 @@ def test_predict_covariance_has_correct_shape():
         ]
     )
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     _, covariance = gp.predict(X_predict)
@@ -360,7 +360,7 @@ def test_predict_mean_matches_gp_equation():
         ]
     )
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     mean, _ = gp.predict(X_predict)
@@ -388,7 +388,7 @@ def test_predict_covariance_matches_gp_equation():
         ]
     )
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     _, covariance = gp.predict(X_predict)
@@ -420,7 +420,7 @@ def test_predict_covariance_is_symmetric():
         ]
     )
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     _, covariance = gp.predict(X_predict)
@@ -446,7 +446,7 @@ def test_predict_covariance_has_nonnegative_diagonal():
         ]
     )
 
-    gp = GaussianProcess(RBF(), noise=0.1)
+    gp = GaussianProcess(RBF(), noise_variance=0.1)
     gp.fit(X_train, y_train)
 
     _, covariance = gp.predict(X_predict)
