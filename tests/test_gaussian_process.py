@@ -5,23 +5,23 @@ from gp.gaussian_process import GaussianProcess, _forward_substitution
 from gp.kernels import RBF
 
 
-def test_gaussian_process_stores_kernel_and_noise():
+def test_gaussian_process_stores_kernel_and_noise_variance():
     kernel = RBF()
-    noise = 0.1
+    noise_variance = 0.1
 
-    gp = GaussianProcess(kernel, noise)
+    gp = GaussianProcess(kernel, noise_variance)
 
     assert gp.kernel is kernel
-    assert gp.noise == noise
+    assert gp.noise_variance == noise_variance
 
 
-def test_gaussian_process_accepts_zero_noise():
+def test_gaussian_process_accepts_zero_noise_variance():
     gp = GaussianProcess(RBF(), noise_variance=0.0)
 
-    assert gp.noise == 0.0
+    assert gp.noise_variance == 0.0
 
 
-def test_gaussian_process_rejects_negative_noise():
+def test_gaussian_process_rejects_negative_noise_variance():
     with pytest.raises(ValueError):
         GaussianProcess(RBF(), noise_variance=-1.0)
 
@@ -153,7 +153,7 @@ def test_fit_constructs_training_covariance():
     assert np.allclose(gp.K_train, expected)
 
 
-def test_fit_adds_observation_noise():
+def test_fit_adds_observation_noise_variance():
     X = np.array(
         [
             [0.0],
@@ -164,12 +164,12 @@ def test_fit_adds_observation_noise():
 
     y = np.array([1.0, 2.0, 3.0])
 
-    noise = 0.1
+    noise_variance = 0.1
     kernel = RBF()
-    gp = GaussianProcess(kernel, noise_variance=noise)
+    gp = GaussianProcess(kernel, noise_variance=noise_variance)
     gp.fit(X, y)
 
-    expected = kernel(X, X) + noise * np.eye(X.shape[0])
+    expected = kernel(X, X) + noise_variance * np.eye(X.shape[0])
 
     assert np.allclose(gp.K_y, expected)
 
